@@ -1,0 +1,285 @@
+#include <stdio.h>    // 引入标准输入输出库
+#include <stdlib.h>   // 引入标准库，用于内存分配和退出等功能
+
+#define STACK_SIZE 100  // 定义栈的最大容量
+#define MAX_SIZE 100    // 定义数组循环队列的最大容量
+
+// ====================================
+// 第一题：带头结点的循环链表表示队列
+// ====================================
+
+// 定义循环链表节点结构体
+typedef struct Node {
+    int value;         // 节点的值
+    struct Node* next; // 指向下一个节点的指针
+} Node;
+
+// 定义循环链表队列结构体
+typedef struct {
+    Node* tail; // 队列的尾部指针
+} CircularQueue;
+
+// 初始化循环链表队列
+void initializeQueue(CircularQueue* queue) {
+    Node* head = (Node*)malloc(sizeof(Node)); // 创建一个头节点
+    head->next = head; // 头节点的next指针指向自身，表示空队列
+    queue->tail = head; // 队列的尾指针指向头节点
+}
+
+// 入队操作
+void enqueue(CircularQueue* queue, int value) {
+    Node* newNode = (Node*)malloc(sizeof(Node)); // 创建一个新节点
+    newNode->value = value;   // 设置节点的值
+    newNode->next = queue->tail->next;  // 新节点的next指向队列的头节点
+    queue->tail->next = newNode;  // 队列尾节点的next指向新节点
+    queue->tail = newNode;  // 更新队列的尾指针
+}
+
+// 出队操作
+int dequeue(CircularQueue* queue) {
+    if (queue->tail->next == queue->tail) { // 如果队列为空
+        printf("队列为空\n");  // 输出提示信息
+        return -1; // 返回-1表示队列为空
+    }
+    Node* head = queue->tail->next; // 获取队列的头节点
+    Node* front = head->next; // 获取队列的第一个元素
+    int value = front->value; // 保存第一个节点的值
+    head->next = front->next; // 将头节点的next指向第二个节点
+    if (queue->tail == front) { // 如果队列中只有一个节点
+        queue->tail = head; // 更新队列尾指针
+    }
+    free(front); // 释放第一个节点的内存
+    return value; // 返回出队的节点值
+}
+
+// ====================================
+// 第二题：基于数组的循环队列
+// ====================================
+
+// 定义基于数组的循环队列结构体
+typedef struct {
+    int data[MAX_SIZE];  // 存储队列元素的数组
+    int rear;            // 队列的尾部索引
+    int length;          // 队列的当前长度
+} ArrayQueue;
+
+// 初始化数组循环队列
+void initializeArrayQueue(ArrayQueue* queue) {
+    queue->rear = -1;  // 初始化尾指针为-1，表示队列为空
+    queue->length = 0;  // 初始化队列长度为0
+}
+
+// 判断队列是否满
+int isFull(ArrayQueue* queue) {
+    return queue->length == MAX_SIZE;  // 如果队列长度等于最大容量，返回1（满），否则返回0（不满）
+}
+
+// 入队操作
+void arrayEnqueue(ArrayQueue* queue, int value) {
+    if (isFull(queue)) {  // 如果队列已满
+        printf("队列已满\n");  // 输出提示信息
+        return;  // 退出函数
+    }
+    queue->rear = (queue->rear + 1) % MAX_SIZE;  // 循环更新尾指针
+    queue->data[queue->rear] = value;  // 将新元素插入队列
+    queue->length++;  // 队列长度加1
+}
+
+// 出队操作
+int arrayDequeue(ArrayQueue* queue) {
+    if (queue->length == 0) {  // 如果队列为空
+        printf("队列为空\n");  // 输出提示信息
+        return -1;  // 返回-1表示队列为空
+    }
+    int frontIndex = (queue->rear + 1 - queue->length + MAX_SIZE) % MAX_SIZE;  // 计算队列头元素的索引
+    int value = queue->data[frontIndex];  // 获取队头元素的值
+    queue->length--;  // 队列长度减1
+    return value;  // 返回出队元素的值
+}
+
+// ====================================
+// 第三题：栈操作
+// ====================================
+
+// 定义栈的结构体
+typedef struct {
+    int data[STACK_SIZE];  // 存储栈元素的数组
+    int top;  // 栈顶索引
+} Stack;
+
+// 初始化栈
+void initializeStack(Stack* stack) {
+    stack->top = -1;  // 初始化栈顶为-1，表示栈为空
+}
+
+// 判断栈是否为空
+int isStackEmpty(Stack* stack) {
+    return stack->top == -1;  // 如果栈顶为-1，表示栈为空
+}
+
+// 入栈操作
+void push(Stack* stack, int value) {
+    if (stack->top == STACK_SIZE - 1) {  // 如果栈已满
+        printf("栈已满\n");  // 输出提示信息
+        return;  // 退出函数
+    }
+    stack->data[++stack->top] = value;  // 将元素压入栈中
+}
+
+// 出栈操作
+int pop(Stack* stack) {
+    if (isStackEmpty(stack)) {  // 如果栈为空
+        printf("栈为空\n");  // 输出提示信息
+        return -1;  // 返回-1表示栈为空
+    }
+    return stack->data[stack->top--];  // 返回栈顶元素并将栈顶指针下移
+}
+
+// ====================================
+// 第四题：借助栈逆置单链表
+// ====================================
+
+// 定义链表节点结构体
+typedef struct ListNode {
+    int value;         // 节点的值
+    struct ListNode* next;  // 指向下一个节点的指针
+} ListNode;
+
+// 逆置链表函数
+void reverseList(ListNode* head) {
+    Stack stack;  // 定义栈
+    initializeStack(&stack);  // 初始化栈
+    ListNode* temp = head;  // 设置临时指针指向链表头
+    
+    // 将链表节点的值压入栈中
+    while (temp != NULL) {
+        push(&stack, temp->value);  // 入栈
+        temp = temp->next;  // 移动到下一个节点
+    }
+
+    // 从栈中弹出节点的值并更新链表
+    temp = head;  // 重置临时指针为链表头
+    while (temp != NULL) {
+        temp->value = pop(&stack);  // 出栈并更新链表节点的值
+        temp = temp->next;  // 移动到下一个节点
+    }
+}
+
+// 创建链表
+ListNode* createList(int size) {
+    ListNode* head = NULL;  // 初始化头指针为NULL
+    ListNode* tail = NULL;  // 初始化尾指针为NULL
+    int value;
+
+    // 输入链表的值并创建链表
+    for (int i = 0; i < size; i++) {
+        printf("请输入第 %d 个节点的值: ", i + 1);  // 提示用户输入
+        scanf("%d", &value);  // 输入节点的值
+
+        ListNode* newNode = (ListNode*)malloc(sizeof(ListNode));  // 创建新节点
+        newNode->value = value;  // 设置节点的值
+        newNode->next = NULL;  // 设置next指针为NULL，表示当前节点是最后一个节点
+
+        // 如果链表为空，则将新节点设置为头节点
+        if (head == NULL) {
+            head = newNode;
+            tail = newNode;
+        } else {
+            tail->next = newNode;  // 否则将尾节点的next指向新节点
+            tail = newNode;  // 更新尾指针
+        }
+    }
+    return head;  // 返回链表的头指针
+}
+
+// 打印链表
+void printList(ListNode* head) {
+    ListNode* temp = head;  // 设置临时指针为链表头
+    while (temp != NULL) {
+        printf("%d -> ", temp->value);  // 打印节点的值
+        temp = temp->next;  // 移动到下一个节点
+    }
+    printf("NULL\n");  // 打印链表结束标识
+}
+
+// ====================================
+// 主函数：使用 switch 语句来选择每个功能
+// ====================================
+
+int main() {
+    CircularQueue circularQueue;  // 创建循环链表队列变量
+    ArrayQueue arrayQueue;        // 创建数组循环队列变量
+    Stack stack;                  // 创建栈变量
+
+    int choice, value, listSize;  // 选择、值和链表大小
+
+    // 初始化队列和栈
+    initializeQueue(&circularQueue);
+    initializeArrayQueue(&arrayQueue);
+    initializeStack(&stack);
+
+    while (1) {
+        printf("\n请选择操作：\n1. 循环链表队列的入队/出队\n");
+        printf("2. 数组循环队列的入队/出队\n");
+        printf("3. 栈操作\n4. 逆置单链表\n0. 退出\n");
+        scanf("%d", &choice);  // 输入选择
+
+        switch (choice) {
+            case 1:
+                printf("输入1入队，2出队：");
+                int op;
+                scanf("%d", &op);  // 输入入队或出队操作
+                if (op == 1) {
+                    printf("输入入队值：");
+                    scanf("%d", &value);  // 输入入队的值
+                    enqueue(&circularQueue, value);  // 执行入队操作
+                } else if (op == 2) {
+                    printf("出队值：%d\n", dequeue(&circularQueue));  // 执行出队操作并打印出队值
+                }
+                break;
+
+            case 2:
+                printf("输入1入队，2出队：");
+                scanf("%d", &op);  // 输入入队或出队操作
+                if (op == 1) {
+                    printf("输入入队值：");
+                    scanf("%d", &value);  // 输入入队的值
+                    arrayEnqueue(&arrayQueue, value);  // 执行入队操作
+                } else if (op == 2) {
+                    printf("出队值：%d\n", arrayDequeue(&arrayQueue));  // 执行出队操作并打印出队值
+                }
+                break;
+
+            case 3:
+                printf("输入整数入栈，输入-1出栈：");
+                scanf("%d", &value);  // 输入栈操作
+                if (value == -1) {
+                    printf("出栈值：%d\n", pop(&stack));  // 执行出栈操作并打印出栈值
+                } else {
+                    push(&stack, value);  // 执行入栈操作
+                }
+                break;
+
+            case 4:
+                // 选择逆置链表时询问链表的大小并创建链表
+                printf("请输入链表的大小: ");
+                scanf("%d", &listSize);  // 输入链表的大小
+                ListNode* list = createList(listSize);  // 创建链表
+
+                printf("当前链表：");
+                printList(list);  // 打印原链表
+                printf("逆置链表\n");
+                reverseList(list);  // 逆置链表
+                printf("逆置后链表：");
+                printList(list);  // 打印逆置后的链表
+                break;
+
+            case 0:
+                exit(0);  // 退出程序
+
+            default:
+                printf("无效选择\n");  // 输出无效选择的提示
+        }
+    }
+    return 0;  // 返回0表示程序正常结束
+}

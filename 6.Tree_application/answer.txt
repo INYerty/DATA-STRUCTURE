@@ -1,0 +1,201 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+// 定义二叉树结点结构体
+typedef struct TreeNode {
+    char data;  // 结点数据
+    struct TreeNode* left;  // 左子结点指针
+    struct TreeNode* right; // 右子结点指针
+} TreeNode;
+
+// 创建二叉树（先序序列输入，'#'表示空节点）
+TreeNode* createTree() {
+    char data;
+    scanf(" %c", &data);  // 输入字符，忽略前面的空格
+
+    if (data == '#') {
+        return NULL;  // 遇到 '#'，返回 NULL 表示空结点
+    }
+
+    TreeNode* node = (TreeNode*)malloc(sizeof(TreeNode)); // 分配内存空间
+    node->data = data; // 设置当前结点数据
+    node->left = createTree();  // 递归创建左子树
+    node->right = createTree(); // 递归创建右子树
+
+    return node;  // 返回创建的结点
+}
+
+// 先序遍历
+void preOrder(TreeNode* root) {
+    if (root == NULL) { // 如果当前结点为空，直接返回
+        return;
+    }
+    printf("%c ", root->data);  // 输出当前结点数据
+    preOrder(root->left);  // 递归遍历左子树
+    preOrder(root->right); // 递归遍历右子树
+}
+
+// 中序遍历
+void inOrder(TreeNode* root) {
+    if (root == NULL) {
+        return;
+    }
+    inOrder(root->left); // 递归遍历左子树
+    printf("%c ", root->data);  // 输出当前结点数据
+    inOrder(root->right); // 递归遍历右子树
+}
+
+// 后序遍历
+void postOrder(TreeNode* root) {
+    if (root == NULL) {
+        return;
+    }
+    postOrder(root->left);  // 递归遍历左子树
+    postOrder(root->right); // 递归遍历右子树
+    printf("%c ", root->data);  // 输出当前结点数据
+}
+
+// 定义一个数组实现的简单队列，用于层次遍历
+#define MAX_QUEUE_SIZE 100
+
+// 定义队列结构体
+typedef struct {
+    TreeNode* data[MAX_QUEUE_SIZE]; // 存储结点指针
+    int front;  // 队列头部索引
+    int rear;   // 队列尾部索引
+} Queue;
+
+// 初始化队列
+void initQueue(Queue* q) {
+    q->front = 0;
+    q->rear = 0;
+}
+
+// 判断队列是否为空
+int isEmpty(Queue* q) {
+    return q->front == q->rear;
+}
+
+// 判断队列是否满
+int isFull(Queue* q) {
+    return (q->rear + 1) % MAX_QUEUE_SIZE == q->front;
+}
+
+// 将结点入队
+void enqueue(Queue* q, TreeNode* node) {
+    if (!isFull(q)) {
+        q->data[q->rear] = node;
+        q->rear = (q->rear + 1) % MAX_QUEUE_SIZE;
+    }
+}
+
+// 将结点出队
+TreeNode* dequeue(Queue* q) {
+    if (!isEmpty(q)) {
+        TreeNode* node = q->data[q->front];
+        q->front = (q->front + 1) % MAX_QUEUE_SIZE;
+        return node;
+    }
+    return NULL;
+}
+
+// 层次遍历
+void levelOrder(TreeNode* root) {
+    if (root == NULL) {
+        return;
+    }
+
+    Queue q;  // 定义队列
+    initQueue(&q); // 初始化队列
+    enqueue(&q, root);  // 根结点入队
+
+    while (!isEmpty(&q)) { // 队列不为空时循环
+        TreeNode* node = dequeue(&q); // 出队一个结点
+        printf("%c ", node->data);  // 输出结点数据
+
+        if (node->left != NULL) {  // 如果左子结点不为空，将左子结点入队
+            enqueue(&q, node->left);
+        }
+
+        if (node->right != NULL) { // 如果右子结点不为空，将右子结点入队
+            enqueue(&q, node->right);
+        }
+    }
+}
+
+// 求二叉树的深度
+int treeDepth(TreeNode* root) {
+    if (root == NULL) {
+        return 0;
+    }
+    int leftDepth = treeDepth(root->left); // 左子树深度
+    int rightDepth = treeDepth(root->right); // 右子树深度
+    return (leftDepth > rightDepth ? leftDepth : rightDepth) + 1; // 返回较大的深度加1
+}
+
+// 求叶子结点的个数
+int countLeafNodes(TreeNode* root) {
+    if (root == NULL) {
+        return 0;
+    }
+    if (root->left == NULL && root->right == NULL) {
+        return 1;  // 当前结点是叶子结点，返回1
+    }
+    return countLeafNodes(root->left) + countLeafNodes(root->right); // 递归求左右子树的叶子结点数
+}
+
+// 主函数和菜单设计
+int main() {
+    printf("请按先序输入二叉树（用#表示空节点）: ");
+    TreeNode* root = createTree();  // 构建二叉树
+
+    int choice; // 用户选择
+    while (1) {
+        printf("\n请选择操作：\n");
+        printf("1. 先序遍历\n");
+        printf("2. 中序遍历\n");
+        printf("3. 后序遍历\n");
+        printf("4. 层次遍历\n");
+        printf("5. 树的深度\n");
+        printf("6. 叶子结点个数\n");
+        printf("7. 退出\n");
+        printf("选择：");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                printf("先序遍历：");
+                preOrder(root);  // 执行先序遍历
+                printf("\n");
+                break;
+            case 2:
+                printf("中序遍历：");
+                inOrder(root);  // 执行中序遍历
+                printf("\n");
+                break;
+            case 3:
+                printf("后序遍历：");
+                postOrder(root);  // 执行后序遍历
+                printf("\n");
+                break;
+            case 4:
+                printf("层次遍历：");
+                levelOrder(root);  // 执行层次遍历
+                printf("\n");
+                break;
+            case 5:
+                printf("树的深度：%d\n", treeDepth(root)); // 输出树的深度
+                break;
+            case 6:
+                printf("叶子结点个数：%d\n", countLeafNodes(root)); // 输出叶子结点个数
+                break;
+            case 7:
+                printf("退出程序。\n"); // 退出程序
+                return 0;
+            default:
+                printf("无效选择，请重新输入。\n"); // 处理无效选择
+        }
+    }
+
+    return 0;
+}
