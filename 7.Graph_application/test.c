@@ -1,173 +1,196 @@
-#include <stdio.h>   // 包含输入输出函数头文件
-#include <stdlib.h>  // 包含动态内存分配函数头文件
-#include <stdbool.h> // 包含布尔类型支持头文件
+#include <stdio.h>
+#include <stdlib.h>
 
-#define MAX 100 // 定义图的最大顶点数
+#define MAX_VERTICES 100  // 定义最大顶点数量
 
-// 邻接矩阵结构定义
+// 定义邻接矩阵结构
 typedef struct {
-    int vertices[MAX];   // 顶点集合（可以进一步扩展为存储顶点名称）
-    int edges[MAX][MAX]; // 邻接矩阵，用于存储边的信息
-    int vertex_count;    // 顶点数
-    int edge_count;      // 边数
-} AdjMatrix;
+    int matrix[MAX_VERTICES][MAX_VERTICES];  // 矩阵表示边的存在
+    int numVertices;  // 顶点数量
+} AdjacencyMatrix;
 
-// 邻接表节点结构定义
-typedef struct AdjListNode {
-    int vertex;                  // 该节点代表的顶点
-    struct AdjListNode* next;    // 指向下一个邻接节点
-} AdjListNode;
+// 定义邻接表节点结构
+typedef struct AdjNode {
+    int vertex;  // 相邻顶点
+    struct AdjNode* next;  // 指向下一个相邻顶点的指针
+} AdjNode;
 
-// 邻接表头定义
+// 定义邻接表结构
 typedef struct {
-    AdjListNode* head; // 每个顶点的邻接链表的头指针
-} AdjList;
+    AdjNode* list[MAX_VERTICES];  // 顶点数组，每个顶点有一个链表表示其相邻顶点
+    int numVertices;  // 顶点数量
+} AdjacencyList;
 
-// 邻接表结构定义
-typedef struct {
-    AdjList array[MAX]; // 邻接表数组，大小为MAX
-    int vertex_count;   // 顶点数
-    int edge_count;     // 边数
-} GraphAdjList;
+// 创建邻接矩阵
+AdjacencyMatrix* createMatrix(int numVertices) {
+    AdjacencyMatrix* matrix = (AdjacencyMatrix*)malloc(sizeof(AdjacencyMatrix));  // 为邻接矩阵分配内存
+    matrix->numVertices = numVertices;  // 设置顶点数量
+    for (int i = 0; i < numVertices; i++) {  // 初始化矩阵所有元素为0
+        for (int j = 0; j < numVertices; j++) {
+            matrix->matrix[i][j] = 0;
+        }
+    }
+    return matrix;  // 返回初始化后的矩阵
+}
 
-// 全局访问标记数组，用于DFS
-int visited[MAX];
+// 创建邻接表
+AdjacencyList* createList(int numVertices) {
+    AdjacencyList* list = (AdjacencyList*)malloc(sizeof(AdjacencyList));  // 为邻接表分配内存
+    list->numVertices = numVertices;  // 设置顶点数量
+    for (int i = 0; i < numVertices; i++) {  // 初始化每个顶点的邻接链表为NULL
+        list->list[i] = NULL;
+    }
+    return list;  // 返回初始化后的邻接表
+}
 
-// 打印菜单函数
+// 添加边到邻接矩阵
+void addEdgeMatrix(AdjacencyMatrix* matrix, int u, int v) {
+    matrix->matrix[u][v] = 1;  // 设置顶点u和v之间的边
+    matrix->matrix[v][u] = 1;  // 无向图，设置顶点v和u之间的边
+}
+
+// 添加边到邻接表
+void addEdgeList(AdjacencyList* list, int u, int v) {
+    AdjNode* newNode = (AdjNode*)malloc(sizeof(AdjNode));  // 创建新节点
+    newNode->vertex = v;  // 设置节点的顶点为v
+    newNode->next = list->list[u];  // 将新节点插入链表头部
+    list->list[u] = newNode;  // 将新节点设为顶点u的第一个相邻节点
+
+    newNode = (AdjNode*)malloc(sizeof(AdjNode));  // 为无向图创建对称边
+    newNode->vertex = u;  // 设置节点的顶点为u
+    newNode->next = list->list[v];  // 将新节点插入链表头部
+    list->list[v] = newNode;  // 将新节点设为顶点v的第一个相邻节点
+}
+
+// 邻接矩阵转换为邻接表
+AdjacencyList* convertMatrixToList(AdjacencyMatrix* matrix) {
+    AdjacencyList* list = createList(matrix->numVertices);  // 创建邻接表
+    for (int i = 0; i < matrix->numVertices; i++) {  // 遍历每个顶点
+        for (int j = matrix->numVertices - 1; j >= 0; j--) {  // 遍历每个相邻顶点
+            if (matrix->matrix[i][j] != 0) {  // 如果顶点i和j之间有边
+                AdjNode* newNode = (AdjNode*)malloc(sizeof(AdjNode));  // 创建新节点
+                newNode->vertex = j;  // 设置节点的顶点为j
+                newNode->next = list->list[i];  // 将新节点插入链表头部
+                list->list[i] = newNode;  // 更新链表头部
+            }
+        }
+    }
+    return list;  // 返回创建的邻接表
+}
+
+// 邻接表转换为邻接矩阵
+AdjacencyMatrix* convertListToMatrix(AdjacencyList* list) {
+    AdjacencyMatrix* matrix = createMatrix(list->numVertices);  // 创建邻接矩阵
+    for (int i = 0; i < list->numVertices; i++) {  // 遍历每个顶点
+        AdjNode* node = list->list[i];  // 获取顶点i的邻接链表
+        while (node != NULL) {  // 遍历链表中的每个节点
+            matrix->matrix[i][node->vertex] = 1;  // 设置顶点i和相邻顶点之间的边
+            node = node->next;  // 移动到下一个节点
+        }
+    }
+    return matrix;  // 返回创建的邻接矩阵
+}
+
+// 广度优先搜索（BFS）
+void BFS(AdjacencyList* list, int startVertex) {
+    int visited[MAX_VERTICES] = {0};  // 创建访问数组并初始化为0
+    int queue[MAX_VERTICES];  // 创建队列
+    int front = 0, rear = 0;  // 初始化队列头尾指针
+
+    visited[startVertex] = 1;  // 标记起始顶点已访问
+    queue[rear++] = startVertex;  // 将起始顶点入队
+
+    while (front != rear) {  // 当队列不为空时
+        int currentVertex = queue[front++];  // 取出队列头部顶点
+        printf("%d ", currentVertex);  // 打印当前顶点
+
+        AdjNode* temp = list->list[currentVertex];  // 获取当前顶点的邻接链表
+        while (temp) {  // 遍历邻接链表中的每个节点
+            int adjVertex = temp->vertex;  // 获取相邻顶点
+            if (!visited[adjVertex]) {  // 如果相邻顶点未访问
+                visited[adjVertex] = 1;  // 标记相邻顶点已访问
+                queue[rear++] = adjVertex;  // 将相邻顶点入队
+            }
+            temp = temp->next;  // 移动到下一个节点
+        }
+    }
+}
+
+// 深度优先搜索（DFS）
+void DFSUtil(AdjacencyMatrix* matrix, int vertex, int visited[]) {
+    visited[vertex] = 1;  // 标记当前顶点已访问
+    printf("%d ", vertex);  // 打印当前顶点
+
+    for (int i = 0; i < matrix->numVertices; i++) {  // 遍历所有顶点
+        if (matrix->matrix[vertex][i] && !visited[i]) {  // 如果有边且顶点未访问
+            DFSUtil(matrix, i, visited);  // 递归访问
+        }
+    }
+}
+
+void DFS(AdjacencyMatrix* matrix, int startVertex) {
+    int visited[MAX_VERTICES] = {0};  // 创建访问数组并初始化为0
+    DFSUtil(matrix, startVertex, visited);  // 从起始顶点开始DFS
+}
+
+// 主菜单
 void menu() {
-    // 提供用户选择的功能菜单
-    printf("\n--- 图的实验主菜单 ---\n");
-    printf("1. 创建图\n");
-    printf("2. 邻接矩阵转邻接表\n");
-    printf("3. 邻接表转邻接矩阵\n");
-    printf("4. 广度优先搜索（BFS）\n");
-    printf("5. 深度优先搜索（DFS）\n");
-    printf("6. 退出\n");
-    printf("请输入你的选择（1-6）：");
+    printf("1. 邻接矩阵转换为邻接表\n");
+    printf("2. 邻接表转换为邻接矩阵\n");
+    printf("3. 广度优先搜索\n");
+    printf("4. 深度优先搜索\n");
+    printf("请选择一个操作: ");
 }
 
-// 创建邻接矩阵函数
-void createAdjMatrix(AdjMatrix* graph) {
-    printf("请输入图的顶点数和边数（空格分隔）：");
-    scanf("%d %d", &graph->vertex_count, &graph->edge_count);
-
-    // 初始化邻接矩阵，所有值为0
-    for (int i = 0; i < graph->vertex_count; i++) {
-        for (int j = 0; j < graph->vertex_count; j++) {
-            graph->edges[i][j] = 0;
-        }
-    }
-
-    // 输入每条边的起点和终点，并更新邻接矩阵
-    printf("请输入每条边（格式：起点 终点）：\n");
-    for (int i = 0; i < graph->edge_count; i++) {
-        int u, v;
-        scanf("%d %d", &u, &v);
-        graph->edges[u][v] = 1; // 无向图，所以两个方向都要设置
-        graph->edges[v][u] = 1;
-    }
-    printf("邻接矩阵创建完成！\n");
-}
-
-// 邻接矩阵转邻接表函数
-void adjMatrixToAdjList(AdjMatrix* matrix, GraphAdjList* list) {
-    list->vertex_count = matrix->vertex_count;
-    list->edge_count = matrix->edge_count;
-
-    // 初始化邻接表
-    for (int i = 0; i < matrix->vertex_count; i++) {
-        list->array[i].head = NULL; // 初始化头指针为空
-        for (int j = 0; j < matrix->vertex_count; j++) {
-            if (matrix->edges[i][j] == 1) {
-                // 如果邻接矩阵中存在边，则创建邻接表节点
-                AdjListNode* newNode = (AdjListNode*)malloc(sizeof(AdjListNode));
-                newNode->vertex = j;       // 设置邻接节点的顶点编号
-                newNode->next = list->array[i].head; // 插入到链表头部
-                list->array[i].head = newNode;
-            }
-        }
-    }
-    printf("邻接表创建完成！\n");
-}
-
-// 深度优先搜索（DFS）函数，基于邻接矩阵
-void DFS(AdjMatrix* graph, int v) {
-    visited[v] = 1; // 标记当前顶点已访问
-    printf("%d ", v); // 输出访问的顶点
-
-    // 遍历邻接矩阵中的邻接顶点
-    for (int i = 0; i < graph->vertex_count; i++) {
-        if (graph->edges[v][i] == 1 && !visited[i]) {
-            // 如果存在未访问的邻接顶点，递归调用DFS
-            DFS(graph, i);
-        }
-    }
-}
-
-// 广度优先搜索（BFS）函数，基于邻接表
-void BFS(GraphAdjList* list, int start) {
-    bool visited[MAX] = { false }; // 初始化访问标记数组
-    int queue[MAX], front = 0, rear = 0; // 初始化队列
-
-    // 标记起始顶点为已访问并加入队列
-    printf("%d ", start);
-    visited[start] = true;
-    queue[rear++] = start;
-
-    while (front < rear) {
-        int current = queue[front++]; // 取出队首顶点
-        AdjListNode* temp = list->array[current].head;
-        while (temp) {
-            int adjVertex = temp->vertex; // 获取邻接顶点
-            if (!visited[adjVertex]) {
-                // 如果邻接顶点未被访问
-                printf("%d ", adjVertex);
-                visited[adjVertex] = true;
-                queue[rear++] = adjVertex; // 入队
-            }
-            temp = temp->next; // 访问下一个邻接节点
-        }
-    }
-}
-
-// 主函数
 int main() {
-    AdjMatrix matrix;         // 定义邻接矩阵结构变量
-    GraphAdjList list;        // 定义邻接表结构变量
-    int choice;               // 用户菜单选择变量
+    AdjacencyMatrix* matrix;
+    AdjacencyList* list;
+    int choice, numVertices, u, v, startVertex;
+
+    printf("请输入顶点数量: ");
+    scanf("%d", &numVertices);
+
+    matrix = createMatrix(numVertices);  // 创建邻接矩阵
+    list = createList(numVertices);  // 创建邻接表
+
+    printf("请输入边 (格式: u v, 输入-1 -1结束):\n");
+    while (1) {
+        scanf("%d %d", &u, &v);
+        if (u == -1 && v == -1) break;  // 输入-1 -1结束
+        addEdgeMatrix(matrix, u, v);  // 添加边到邻接矩阵
+        addEdgeList(list, u, v);  // 添加边到邻接表
+    }
 
     while (1) {
-        menu();               // 显示菜单
-        scanf("%d", &choice); // 用户输入选择
+        menu();  // 显示菜单
+        scanf("%d", &choice);
         switch (choice) {
             case 1:
-                createAdjMatrix(&matrix); // 创建邻接矩阵
+                list = convertMatrixToList(matrix);  // 邻接矩阵转换为邻接表
+                printf("邻接矩阵转换为邻接表成功。\n");
                 break;
             case 2:
-                adjMatrixToAdjList(&matrix, &list); // 矩阵转表
+                matrix = convertListToMatrix(list);  // 邻接表转换为邻接矩
+                                printf("邻接表转换为邻接矩阵成功。\n");
                 break;
             case 3:
-                printf("功能未实现\n"); // 选做功能
+                printf("请输入起始顶点: ");
+                scanf("%d", &startVertex);
+                printf("广度优先搜索结果: ");
+                BFS(list, startVertex);  // 进行广度优先搜索
+                printf("\n");
                 break;
             case 4:
-                printf("请输入起始顶点：");
-                int startBFS;
-                scanf("%d", &startBFS);
-                BFS(&list, startBFS); // 执行广度优先搜索
+                printf("请输入起始顶点: ");
+                scanf("%d", &startVertex);
+                printf("深度优先搜索结果: ");
+                DFS(matrix, startVertex);  // 进行深度优先搜索
+                printf("\n");
                 break;
-            case 5:
-                printf("请输入起始顶点：");
-                int startDFS;
-                scanf("%d", &startDFS);
-                for (int i = 0; i < matrix.vertex_count; i++) visited[i] = 0; // 重置访问数组
-                DFS(&matrix, startDFS); // 执行深度优先搜索
-                break;
-            case 6:
-                printf("退出程序。\n"); // 退出程序
-                exit(0);
             default:
-                printf("无效选择，请重新输入！\n"); // 无效选择提示
+                printf("无效选择。\n");  // 处理无效的选择
         }
     }
-    return 0;
+
+    return 0;  // 返回0表示程序成功执行
 }
