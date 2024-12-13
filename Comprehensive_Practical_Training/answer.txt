@@ -1,0 +1,188 @@
+#include <stdio.h>   // 引入标准输入输出库，用于打印和读取数据
+#include <stdlib.h>  // 引入标准库，包含内存分配、程序控制等功能
+#include <string.h>  // 引入字符串处理库，用于字符串操作
+
+#define MAX_STUDENTS 100  // 定义最大学生数量为100
+#define MAX_SUBJECTS 10   // 定义最大科目数量为10
+
+// 定义学生信息结构体
+typedef struct {
+    char id[20];          // 学号字段，最多20个字符
+    char name[50];        // 姓名字段，最多50个字符
+    int semester;         // 学期（1或2，表示第几学期）
+    float scores[MAX_SUBJECTS]; // 各科成绩，最多10个科目
+    float totalScore;     // 总成绩，所有科目的分数之和
+} Student;
+
+Student students[MAX_STUDENTS];  // 定义学生数组，用于存储多个学生信息
+int n, m;  // 学生数量和科目数量
+float fail_threshold = 60.0;  // 不及格的分数线，60分为不及格
+
+// 计算每个学生的总成绩
+void calculateTotalScores() {
+    for (int i = 0; i < n; i++) {  // 遍历每个学生
+        students[i].totalScore = 0;  // 初始化学生的总成绩为0
+        for (int j = 0; j < m; j++) {  // 遍历每个学生的每门科目
+            students[i].totalScore += students[i].scores[j];  // 将每门科目的分数加到总成绩中
+        }
+    }
+}
+
+// 打印每学期的排名
+void printRanking() {
+    printf("\n--- 每学期排名 ---\n");
+    for (int sem = 1; sem <= 2; sem++) {  // 遍历学期1和学期2
+        printf("\n学期 %d:\n", sem);
+        Student temp[MAX_STUDENTS];  // 临时数组，用于存储该学期的学生
+        int count = 0;  // 记录该学期的学生数量
+        
+        // 过滤出该学期的学生
+        for (int i = 0; i < n; i++) {
+            if (students[i].semester == sem) {  // 判断该学生是否属于当前学期
+                temp[count++] = students[i];  // 将符合条件的学生存入临时数组
+            }
+        }
+        
+        // 按照总成绩排序（冒泡排序）
+        for (int i = 0; i < count - 1; i++) {
+            for (int j = i + 1; j < count; j++) {
+                if (temp[i].totalScore < temp[j].totalScore) {  // 如果前一个学生的总成绩较低，则交换
+                    Student swap = temp[i];
+                    temp[i] = temp[j];
+                    temp[j] = swap;
+                }
+            }
+        }
+        
+        // 打印学期排名
+        for (int i = 0; i < count; i++) {
+            printf("%d. 学号: %s, 姓名: %s, 总分: %.2f\n",
+                   i + 1, temp[i].id, temp[i].name, temp[i].totalScore);  // 打印排名、学号、姓名和总成绩
+        }
+    }
+}
+
+// 打印每学期不及格人数
+void printFailStats() {
+    printf("\n--- 每学期不及格人数 ---\n");
+    for (int sem = 1; sem <= 2; sem++) {  // 遍历学期1和学期2
+        printf("\n学期 %d:\n", sem);
+        int failCounts[MAX_SUBJECTS] = {0};  // 初始化每门科目的不及格人数为0
+        for (int i = 0; i < n; i++) {  // 遍历每个学生
+            if (students[i].semester == sem) {  // 判断该学生是否属于当前学期
+                for (int j = 0; j < m; j++) {  // 遍历每个科目
+                    if (students[i].scores[j] < fail_threshold) {  // 如果该学生在某科目的分数低于不及格分数
+                        failCounts[j]++;  // 该科目的不及格人数增加
+                    }
+                }
+            }
+        }
+        
+        // 打印每门科目的不及格人数
+        for (int i = 0; i < m; i++) {
+            printf("科目 %d 不及格人数: %d\n", i + 1, failCounts[i]);  // 打印科目不及格人数
+        }
+    }
+}
+
+// 打印每个学生的不及格情况
+void printFailingStudents() {
+    printf("\n--- 学生不及格情况统计 ---\n");
+    for (int i = 0; i < n; i++) {  // 遍历每个学生
+        int failCount = 0;  // 记录该学生不及格科目数
+        printf("\n学号: %s, 姓名: %s\n", students[i].id, students[i].name);  // 打印学号和姓名
+        for (int j = 0; j < m; j++) {  // 遍历每个科目
+            if (students[i].scores[j] < fail_threshold) {  // 如果该科目的成绩不及格
+                failCount++;  // 不及格科目数加1
+                printf("  科目 %d 成绩: %.2f (不及格)\n", j + 1, students[i].scores[j]);  // 打印不及格科目的成绩
+            }
+        }
+        if (failCount == 0) {  // 如果该学生没有不及格科目
+            printf("  无不及格成绩\n");
+        }
+    }
+}
+
+// 根据不及格科目数打印达到预警标准的学生名单
+void alertFailingStudents(int threshold) {
+    printf("\n--- 达到预警标准的学生名单 ---\n");
+    for (int i = 0; i < n; i++) {  // 遍历每个学生
+        int failCount = 0;  // 记录该学生不及格科目数
+        for (int j = 0; j < m; j++) {  // 遍历每个科目
+            if (students[i].scores[j] < fail_threshold) {  // 如果该科目的成绩不及格
+                failCount++;  // 不及格科目数加1
+            }
+        }
+        if (failCount >= threshold) {  // 如果不及格科目数达到预警标准
+            printf("学号: %s, 姓名: %s, 不及格科目数: %d\n", students[i].id, students[i].name, failCount);  // 打印学生的学号、姓名和不及格科目数
+        }
+    }
+}
+
+// 打印每个学生的总成绩
+void printSemesterTotalScores() {
+    printf("\n--- 学生总成绩 ---\n");
+    for (int i = 0; i < n; i++) {  // 遍历每个学生
+        printf("学号: %s, 姓名: %s, 学期: %d, 总分: %.2f\n",
+               students[i].id, students[i].name, students[i].semester, students[i].totalScore);  // 打印学号、姓名、学期和总成绩
+    }
+}
+
+// 菜单显示和处理用户选择
+void menu() {
+    int choice, threshold;  // choice为用户选择，threshold为预警标准的不及格科目数
+    while (1) {  // 无限循环，直到用户选择退出
+        printf("\n--- 学生成绩管理菜单 ---\n");
+        printf("1. 每学期排名\n");
+        printf("2. 每学期不及格人数\n");
+        printf("3. 学生不及格情况统计\n");
+        printf("4. 设置预警标准并打印名单\n");
+        printf("5. 打印总成绩\n");
+        printf("0. 退出\n");
+        printf("请输入选择: ");
+        scanf("%d", &choice);  // 读取用户输入的菜单选项
+
+        switch (choice) {  // 根据用户选择执行不同操作
+            case 1:
+                printRanking();  // 打印每学期排名
+                break;
+            case 2:
+                printFailStats();  // 打印每学期不及格人数
+                break;
+            case 3:
+                printFailingStudents();  // 打印每个学生的不及格情况
+                break;
+            case 4:
+                printf("请输入不及格课程数预警值: ");
+                scanf("%d", &threshold);  // 读取预警标准
+                alertFailingStudents(threshold);  // 打印达到预警标准的学生名单
+                break;
+            case 5:
+                printSemesterTotalScores();  // 打印学生总成绩
+                break;
+            case 0:
+                return;  // 退出程序
+            default:
+                printf("无效选择！请重新输入。\n");  // 输入无效时提示
+        }
+    }
+}
+
+int main() {
+    printf("请输入学生人数和科目数量: ");
+    scanf("%d %d", &n, &m);  // 读取学生人数和科目数量
+
+    // 输入学生信息
+    for (int i = 0; i < n; i++) {  // 遍历每个学生
+        printf("\n输入第 %d 个学生的信息 (学号 姓名 学期号 各科成绩):\n", i + 1);
+        scanf("%s %s %d", students[i].id, students[i].name, &students[i].semester);  // 读取学号、姓名、学期号
+        for (int j = 0; j < m; j++) {  // 遍历每门科目
+            scanf("%f", &students[i].scores[j]);  // 读取成绩
+        }
+    }
+
+    calculateTotalScores();  // 计算每个学生的总成绩
+    menu();  // 显示菜单，等待用户选择
+
+    return 0;  // 程序结束
+}
