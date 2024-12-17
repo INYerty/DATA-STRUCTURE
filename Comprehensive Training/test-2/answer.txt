@@ -1,4 +1,4 @@
-#include <stdio.h>   // 引入标准输入输出库，用于打印和读取数据
+6#include <stdio.h>   // 引入标准输入输出库，用于打印和读取数据
 #include <stdlib.h>  // 引入标准库，包含内存分配、程序控制等功能
 #include <string.h>  // 引入字符串处理库，用于字符串操作
 
