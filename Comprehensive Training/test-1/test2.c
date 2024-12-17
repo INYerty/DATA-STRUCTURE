@@ -1,5 +1,3 @@
-//题目4: 多窗口银行业务模拟系统
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -121,7 +119,22 @@ int main() {
         initQueue(&windows[i]);
     }
 
-    int id = 1; // 顾客ID递增
+    // 设置初始队列长度
+    for (int i = 0; i < MAX_WINDOWS; i++) {
+        int initialCount;
+        printf("输入窗口 %d 的初始顾客人数: ", i + 1);
+        scanf("%d", &initialCount);
+
+        for (int j = 0; j < initialCount; j++) {
+            Customer c;
+            c.id = -1; // 初始顾客不需要具体ID
+            c.deposit = 0; // 初始顾客存款默认为0
+            c.priority = 0; // 初始顾客优先级默认为普通客户
+            enqueue(&windows[i], c); // 将初始顾客加入队列
+        }
+    }
+
+    int id = 1; // 新顾客ID递增
     char command[10]; // 存储用户输入的命令
 
     while (1) {
