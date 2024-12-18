@@ -2,180 +2,208 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_QUEUE 100 // 定义队列的最大长度
-#define MAX_WINDOWS 3 // 定义窗口的数量
+#define MAX_CUSTOMERS 100 // 定义最大客户数量为10，可以根据需求调整
+#define MAX_WINDOWS 3     // 定义窗口数量为3
 
-// 顾客结构体
-typedef struct {
-    int id;           // 顾客ID
-    int deposit;      // 存款金额
-    int priority;     // 优先级
-    int isNew;        // 是否为新顾客（1: 新顾客, 0: 初始顾客）
+// 定义结构体，包含客户信息
+typedef struct
+{
+    char name[50];         // 客户姓名
+    char card_number[5];   // 4位银行卡号 + 1位结束符
+    double deposit_amount; // 存款金额
+    int priority;          // 客户优先级（0: 普通客户, 1: I级, 2: II级, 3: III级）
+    int service_time;      // 服务时间（单位分钟）
+    int served;            // 客户是否已被服务的标记（0: 未服务, 1: 已服务）
+    int window_index;      // 客户被分配的窗口索引
 } Customer;
 
-// 队列结构体
-typedef struct {
-    Customer customers[MAX_QUEUE]; // 顾客数组
-    int front;                     // 队列头
-    int rear;                      // 队列尾
-} Queue;
+// 声明客户数组、统计变量及窗口服务人数
+Customer customers[MAX_CUSTOMERS]; // 存储客户信息的数组
+int customer_count = 0;            // 当前客户数
+int served_customers = 0;          // 已服务客户数
+int vip_customers = 0;             // VIP客户数
+int total_waiting_time = 0;        // 总逗留时间
 
-// 初始化队列
-void initQueue(Queue *q) {
-    q->front = 0;
-    q->rear = 0;
-}
+// 窗口服务人数，窗口A、B、C的客户数量
+int window_count[MAX_WINDOWS] = {0, 0, 0}; // 初始化每个窗口的客户数为0
 
-// 检查队列是否为空
-int isEmpty(Queue *q) {
-    return q->front == q->rear;
-}
+// 函数声明
+void add_customer();             // 添加客户
+void serve_customers();          // 服务客户
+void print_summary();            // 打印服务统计信息
+int get_priority(double amount); // 获取客户优先级
+int find_min_window();           // 查找服务人数最少的窗口
+void sort_customers();           // 对客户按存款金额进行排序
 
-// 检查队列是否已满
-int isFull(Queue *q) {
-    return (q->rear + 1) % MAX_QUEUE == q->front;
-}
+// 主函数
+int main()
+{
+    int choice;
 
-// 入队
-void enqueue(Queue *q, Customer c) {
-    if (isFull(q)) {
-        printf("队列已满，无法加入更多顾客\n");
-        return;
-    }
-    q->customers[q->rear] = c;
-    q->rear = (q->rear + 1) % MAX_QUEUE;
-}
+    // 初始化窗口服务人数
+    printf("请输入每个窗口初始服务人数 (A B C): ");
+    scanf("%d %d %d", &window_count[0], &window_count[1], &window_count[2]); // 从键盘输入各窗口的初始客户人数
 
-// 出队
-Customer dequeue(Queue *q) {
-    if (isEmpty(q)) {
-        printf("队列为空，无法出队\n");
-        exit(1);
-    }
-    Customer c = q->customers[q->front];
-    q->front = (q->front + 1) % MAX_QUEUE;
-    return c;
-}
+    // 主菜单循环，提供给用户选择不同功能
+    while (1)
+    {
+        printf("\n多窗口银行业务模拟系统\n");
+        printf("1. 添加客户\n");
+        printf("2. 服务客户\n");
+        printf("3. 打印统计信息\n");
+        printf("4. 退出系统\n");
+        printf("请选择功能: ");
+        scanf("%d", &choice); // 获取用户输入的选择
 
-// 获取队列长度
-int queueLength(Queue *q) {
-    return (q->rear - q->front + MAX_QUEUE) % MAX_QUEUE;
-}
-
-// 根据存款金额设置优先级
-int getPriority(int deposit) {
-    if (deposit < 200000) return 0;  // 普通客户
-    if (deposit <= 500000) return 1; // VIP I级
-    if (deposit <= 1000000) return 2; // VIP II级
-    return 3; // VIP III级
-}
-
-// 查找人数最少的队列
-int findShortestQueue(Queue windows[]) {
-    int minIndex = 0;
-    int minLength = queueLength(&windows[0]);
-    for (int i = 1; i < MAX_WINDOWS; i++) {
-        int length = queueLength(&windows[i]);
-        if (length < minLength) {
-            minIndex = i;
-            minLength = length;
-        }
-    }
-    return minIndex;
-}
-
-// 服务顾客逻辑
-void serveCustomer(Queue windows[]) {
-    int highestPriority = -1;
-    int selectedWindow = -1;
-    int selectedPosition = -1;
-
-    // 遍历所有窗口，找到优先级最高的 **新顾客**
-    for (int i = 0; i < MAX_WINDOWS; i++) {
-        int length = queueLength(&windows[i]);
-        int currentPos = windows[i].front;
-
-        for (int j = 0; j < length; j++) {
-            Customer c = windows[i].customers[currentPos];
-            if (c.isNew && (c.priority > highestPriority || 
-                (c.priority == highestPriority && selectedWindow == -1))) {
-                highestPriority = c.priority;
-                selectedWindow = i;
-                selectedPosition = currentPos;
-            }
-            currentPos = (currentPos + 1) % MAX_QUEUE;
-        }
-    }
-
-    // 服务选中的新顾客
-    if (selectedWindow != -1 && selectedPosition != -1) {
-        Customer c = windows[selectedWindow].customers[selectedPosition];
-        
-        // 调整队列，删除已服务的顾客
-        for (int i = selectedPosition; i != windows[selectedWindow].rear; 
-             i = (i + 1) % MAX_QUEUE) {
-            int next = (i + 1) % MAX_QUEUE;
-            windows[selectedWindow].customers[i] = windows[selectedWindow].customers[next];
-        }
-        windows[selectedWindow].rear = (windows[selectedWindow].rear - 1 + MAX_QUEUE) % MAX_QUEUE;
-
-        printf("窗口 %d 正在服务顾客 %d (存款: %d, 优先级: %d)\n", 
-               selectedWindow + 1, c.id, c.deposit, c.priority);
-    } else {
-        printf("当前没有新顾客等待服务\n");
-    }
-}
-
-int main() {
-    Queue windows[MAX_WINDOWS]; // 定义窗口队列数组
-    for (int i = 0; i < MAX_WINDOWS; i++) {
-        initQueue(&windows[i]);
-    }
-
-    // 输入初始顾客人数（初始顾客标记为非新顾客）
-    for (int i = 0; i < MAX_WINDOWS; i++) {
-        int initialCount;
-        printf("输入窗口 %d 的初始顾客人数: ", i + 1);
-        scanf("%d", &initialCount);
-
-        for (int j = 0; j < initialCount; j++) {
-            Customer c;
-            c.id = -1; // 初始顾客不需要具体ID
-            c.deposit = 0; // 初始顾客存款默认为0
-            c.priority = 0; // 普通客户优先级最低
-            c.isNew = 0; // 初始顾客
-            enqueue(&windows[i], c);
-        }
-    }
-
-    int id = 1; // 新顾客ID递增
-    char command[10];
-
-    while (1) {
-        printf("输入 'A' 添加顾客, 'S' 服务顾客, 'Q' 退出: ");
-        scanf("%s", command);
-
-        if (strcmp(command, "A") == 0) { // 添加新顾客
-            Customer c;
-            c.id = id++;
-            printf("输入存款金额: ");
-            scanf("%d", &c.deposit);
-            c.priority = getPriority(c.deposit);
-            c.isNew = 1; // 新顾客
-
-            int windowIndex = findShortestQueue(windows);
-            enqueue(&windows[windowIndex], c);
-            printf("顾客 %d (存款: %d, 优先级: %d) 已加入窗口 %d 队列\n", 
-                   c.id, c.deposit, c.priority, windowIndex + 1);
-        } else if (strcmp(command, "S") == 0) { // 服务顾客
-            serveCustomer(windows);
-        } else if (strcmp(command, "Q") == 0) { // 退出程序
-            printf("程序结束\n");
+        // 根据用户选择调用对应的功能
+        switch (choice)
+        {
+        case 1:
+            add_customer(); // 添加客户
             break;
-        } else {
-            printf("无效命令\n");
+        case 2:
+            serve_customers(); // 服务客户
+            break;
+        case 3:
+            print_summary(); // 打印统计信息
+            break;
+        case 4:
+            exit(0); // 退出系统
+        default:
+            printf("无效选择，请重试。\n"); // 用户输入无效选择时提示
         }
     }
 
     return 0;
+}
+
+// 添加客户函数
+void add_customer()
+{
+    // 如果当前客户数已达到最大值，则无法添加新客户
+    if (customer_count >= MAX_CUSTOMERS)
+    {
+        printf("客户数量已达到上限！\n");
+        return;
+    }
+
+    // 获取当前要添加的客户位置
+    Customer *c = &customers[customer_count];
+
+    // 输入客户信息
+    printf("输入客户姓名: ");
+    scanf("%s", c->name);
+    printf("输入银行卡号 (4位): ");
+    scanf("%s", c->card_number);
+    printf("输入存款金额: ");
+    scanf("%lf", &c->deposit_amount);
+
+    // 根据存款金额计算客户优先级
+    c->priority = get_priority(c->deposit_amount);
+    c->served = 0; // 初始化为未服务状态
+
+    // 为客户分配服务窗口
+    c->window_index = find_min_window();
+    window_count[c->window_index]++; // 增加该窗口的客户数
+
+    customer_count++; // 客户总数加1
+
+    // 添加客户后进行排序
+    sort_customers();
+}
+
+// 根据客户存款金额获取其优先级
+int get_priority(double amount)
+{
+    if (amount < 200000)
+        return 0; // 存款小于20万为普通客户
+    if (amount <= 500000)
+        return 1; // 存款在20万到50万之间为I级客户
+    if (amount <= 1000000)
+        return 2; // 存款在50万到100万之间为II级客户
+    if (amount > 1000000)
+        return 3; // 存款大于100万为III级客户
+}
+
+// 查找服务人数最少的窗口
+int find_min_window()
+{
+    int min_index = 0; // 假设窗口0的服务人数最少
+    for (int i = 1; i < MAX_WINDOWS; i++)
+    {
+        if (window_count[i] < window_count[min_index])
+        {
+            min_index = i; // 更新窗口索引为当前服务人数最少的窗口
+        }
+    }
+    return min_index; // 返回服务人数最少的窗口索引
+}
+
+// 对客户按存款金额进行排序（使用冒泡排序）
+void sort_customers()
+{
+    for (int i = 0; i < customer_count - 1; i++)
+    {
+        for (int j = 0; j < customer_count - i - 1; j++)
+        {
+            if (customers[j].deposit_amount < customers[j + 1].deposit_amount)
+            {
+                // 交换存款金额较小的客户与存款金额较大的客户
+                Customer temp = customers[j];
+                customers[j] = customers[j + 1];
+                customers[j + 1] = temp;
+            }
+        }
+    }
+} // 结束冒泡排序
+
+// 服务客户函数
+void serve_customers()
+{
+    for (int i = 0; i < customer_count; i++)
+    {
+        if (customers[i].served == 0)
+        { // 仅服务未被服务过的客户
+            // 随机生成服务时间（1到15分钟之间）
+            customers[i].service_time = rand() % 15 + 1;
+            total_waiting_time += customers[i].service_time; // 累加总等待时间
+            customers[i].served = 1;                         // 标记该客户已服务
+
+            // 统计服务过的客户数量
+            served_customers++;
+
+            // 输出服务信息，根据优先级输出不同的信息
+            if (customers[i].priority > 0)
+            {
+                vip_customers++; // 如果是VIP客户，VIP客户数加1
+                printf("服务VIP客户: 姓名: %s, 银行卡号: %s, 存款: %.2f, 服务时间: %d分钟, 窗口: %d, VIP等级: %d\n",
+                       customers[i].name, customers[i].card_number, customers[i].deposit_amount, customers[i].service_time, customers[i].window_index + 1, customers[i].priority);
+            }
+            else
+            {
+                // 普通客户服务信息
+                printf("服务普通客户: 姓名: %s, 银行卡号: %s, 存款: %.2f, 服务时间: %d分钟, 窗口: %d\n",
+                       customers[i].name, customers[i].card_number, customers[i].deposit_amount, customers[i].service_time, customers[i].window_index + 1);
+            }
+
+            // 服务完成后，减少该窗口的客户数量
+            window_count[customers[i].window_index]--;
+        }
+    }
+}
+
+// 打印统计信息
+void print_summary()
+{
+    printf("\n服务统计:\n");
+    printf("总客户数: %d\n", served_customers);
+    printf("VIP客户数: %d\n", vip_customers);
+    if (served_customers > 0)
+    {
+        printf("平均逗留时间: %.2f分钟\n", (double)total_waiting_time / served_customers); // 输出平均逗留时间
+    }
+    else
+    {
+        printf("没有客户接受服务。\n"); // 如果没有客户接受服务，则输出提示
+    }
 }

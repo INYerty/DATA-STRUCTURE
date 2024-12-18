@@ -73,7 +73,7 @@ void printRank()
 void printFail()
 {
     printf("\n学期不及格人数\n");
-    for (int sem = 1; sem <= 2; sem++)
+    for (int sem = 1; sem <= 4; sem++)
     {
         printf("\n学期 %d:\n", sem);
         int failcount[MAXSUBJECTS] = {0};
@@ -142,8 +142,7 @@ void warning(int warningScore)
 
         if (failcount >= warningScore)
         {
-            printf("学号: %d, 姓名: %s, 不及格科目数: %d\n",
-                   student[i].id, student[i].name, failcount);
+            printf("学号: %d, 姓名: %s, 不及格科目数: %d\n",student[i].id, student[i].name, failcount);
         }
     }
 }
