@@ -3,13 +3,13 @@
         {
             "type": "cppbuild",
             "label": "C/C++: gcc.exe build active file",
-            "command": "C:\\x86_64-8.1.0-release-posix-seh-rt_v6-rev0\\mingw64\\bin\\gcc.exe",
+            "command": "C:\\mingw64\\bin\\gcc.exe",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
                 "*.c",
                 "-o",
-                "${fileDirname}\\a.exe"
+                "${fileDirname}\\b.exe"
             ],
             "options": {
                 "cwd": "${fileDirname}"
